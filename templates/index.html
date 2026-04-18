@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetWatch — Network Monitor by Struckhigh</title>
+  <meta name="description" content="Real-time local network monitoring dashboard. Built by Struckhigh Solutions." />
+  <meta name="author" content="Struckhigh Solutions" />
+  <meta property="og:title" content="NetWatch — Network Monitor by Struckhigh" />
+  <meta property="og:description" content="Real-time local network monitoring. Upload/download speeds, active connections, port usage." />
+  <meta property="og:image" content="https://struckhigh.co.in/assets/img/logo/logo-struckhigh.png" />
+  <link rel="icon" href="/static/assets/logo-struckhigh.png" type="image/png" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ══════════════════════════════════════════════════════════
+       THEME VARIABLES
+       ══════════════════════════════════════════════════════════ */
+    [data-theme="dark"] {
+      --bg:          #0a0c10;
+      --surface:     #12151c;
+      --surface2:    #181c26;
+      --border:      #1e2330;
+      --text:        #e4e6ed;
+      --text-secondary: #c0c4d0;
+      --muted:       #6b7280;
+      --brand:       #e8552d;
+      --brand-glow:  rgba(232,85,45,.2);
+      --brand-subtle:rgba(232,85,45,.08);
+      --accent:      #8b5cf6;
+      --up:          #10b981;
+      --down:        #f472b6;
+      --green:       #10b981;
+      --orange:      #f59e0b;
+      --red:         #ef4444;
+      --blue:        #3b82f6;
+      --hover-row:   rgba(232,85,45,.03);
+      --chart-grid:  rgba(30,35,48,.5);
+      --logo-filter: brightness(0) invert(1);
+      --hero-bg:     linear-gradient(135deg, #1a1020 0%, #0f1520 50%, #0a1018 100%);
+      --shadow:      0 1px 3px rgba(0,0,0,.4);
+    }
+
+    [data-theme="light"] {
+      --bg:          #f4f5f7;
+      --surface:     #ffffff;
+      --surface2:    #f9fafb;
+      --border:      #e2e5ea;
+      --text:        #111827;
+      --text-secondary: #374151;
+      --muted:       #6b7280;
+      --brand:       #d4421a;
+      --brand-glow:  rgba(212,66,26,.12);
+      --brand-subtle:rgba(212,66,26,.06);
+      --accent:      #7c3aed;
+      --up:          #059669;
+      --down:        #db2777;
+      --green:       #059669;
+      --orange:      #d97706;
+      --red:         #dc2626;
+      --blue:        #2563eb;
+      --hover-row:   rgba(212,66,26,.03);
+      --chart-grid:  rgba(0,0,0,.06);
+      --logo-filter: none;
+      --hero-bg:     linear-gradient(135deg, #fdf2f0 0%, #f0f4ff 50%, #f4f5f7 100%);
+      --shadow:      0 1px 3px rgba(0,0,0,.08);
+    }
+
+    :root { --radius: 14px; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      min-height: 100vh;
+      transition: background .3s, color .3s;
+    }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Logo filter ──────────────────────────────────────── */
+    .logo-img { filter: var(--logo-filter); transition: filter .3s; }
+
+    /* ── Top bar ──────────────────────────────────────────── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      transition: background .3s, border-color .3s;
+    }
+    .topbar .logo-img { height: 32px; }
+    .topbar .divider { width: 1px; height: 24px; background: var(--border); transition: background .3s; }
+    .topbar .product-name { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+    .topbar .product-name span { color: var(--brand); }
+    .topbar .tagline { font-size: 12px; color: var(--muted); margin-left: 4px; }
+    .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+    .topbar .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .topbar .live-label { font-size: 12px; color: var(--green); font-weight: 600; }
+    .topbar .social-link { color: var(--muted); transition: color .15s; display: flex; }
+    .topbar .social-link:hover { color: var(--brand); text-decoration: none; }
+    .topbar .social-link svg { width: 18px; height: 18px; }
+
+    /* ── Theme toggle (button style) ─────────────────────── */
+    .theme-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all .2s;
+    }
+    .theme-btn:hover {
+      border-color: var(--brand);
+      background: var(--brand-subtle);
+      color: var(--brand);
+    }
+    .theme-btn svg { width: 16px; height: 16px; }
+    .theme-btn .icon-sun  { display: none; color: #f59e0b; }
+    .theme-btn .icon-moon { display: block; color: #fbbf24; }
+    .theme-btn .label-text::after { content: "Light"; }
+    [data-theme="light"] .theme-btn .icon-sun  { display: block; }
+    [data-theme="light"] .theme-btn .icon-moon { display: none; }
+    [data-theme="light"] .theme-btn .label-text::after { content: "Dark"; }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .app { max-width: 1400px; margin: 0 auto; padding: 24px 20px 32px; }
+
+    /* ── Hero banner ──────────────────────────────────────── */
+    .hero {
+      background: var(--hero-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 36px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: background .3s, border-color .3s;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -60%; right: -10%;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, var(--brand-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero h2 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 6px; }
+    .hero h2 span { color: var(--brand); }
+    .hero p { color: var(--muted); font-size: 14px; max-width: 600px; }
+    .hero .powered {
+      margin-top: 14px; font-size: 11px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .hero .powered img { height: 16px; opacity: .7; }
+
+    /* ── Stats ────────────────────────────────────────────── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex; flex-direction: column; gap: 2px;
+      position: relative; overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: background .3s, border-color .3s, box-shadow .3s;
+    }
+    .stat-card::after { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .stat-card.s-up::after    { background: var(--up); }
+    .stat-card.s-down::after  { background: var(--down); }
+    .stat-card.s-sent::after  { background: var(--brand); }
+    .stat-card.s-recv::after  { background: var(--blue); }
+    .stat-card .icon-wrap {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: grid; place-items: center; margin-bottom: 8px;
+    }
+    .stat-card.s-up .icon-wrap    { background: rgba(16,185,129,.1); color: var(--up); }
+    .stat-card.s-down .icon-wrap  { background: rgba(244,114,182,.1); color: var(--down); }
+    .stat-card.s-sent .icon-wrap  { background: var(--brand-subtle); color: var(--brand); }
+    .stat-card.s-recv .icon-wrap  { background: rgba(59,130,246,.1); color: var(--blue); }
+    .stat-card .icon-wrap svg { width: 20px; height: 20px; }
+    .stat-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+    .stat-card .value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .stat-card .sub { font-size: 11px; color: var(--muted); }
+    .v-up   { color: var(--up); }
+    .v-down { color: var(--down); }
+    .v-brand{ color: var(--brand); }
+    .v-blue { color: var(--blue); }
+
+    /* ── Card ─────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 26px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      transition: background .3s, border-color .3s, box-shadow .3s;
+    }
+    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .card-header .card-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: grid; place-items: center;
+      background: var(--brand-subtle); color: var(--brand);
+    }
+    .card-header .card-icon svg { width: 16px; height: 16px; }
+    .card-header h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); font-weight: 700; }
+    .card-header .count { color: var(--brand); font-size: 13px; font-weight: 600; }
+    .chart-wrap { position: relative; height: 280px; }
+
+    /* ── Tabs ─────────────────────────────────────────────── */
+    .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+    .tabs button {
+      background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+      padding: 8px 20px; border-radius: 10px; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tabs button svg { width: 14px; height: 14px; }
+    .tabs button:hover { color: var(--text); border-color: var(--muted); }
+    .tabs button.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+    /* ── Table ────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; max-height: 440px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      position: sticky; top: 0; background: var(--surface);
+      text-align: left; padding: 10px 14px; color: var(--muted);
+      font-weight: 700; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .5px; border-bottom: 1px solid var(--border);
+    }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody tr:hover { background: var(--hover-row); }
+
+    /* ── Badges ───────────────────────────────────────────── */
+    .badge-status { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+    .badge-listen      { background: rgba(16,185,129,.12); color: var(--green); }
+    .badge-established { background: rgba(139,92,246,.12); color: var(--accent); }
+    .badge-time-wait   { background: rgba(245,158,11,.12); color: var(--orange); }
+    .badge-close-wait  { background: rgba(239,68,68,.12);  color: var(--red); }
+    .badge-other       { background: rgba(107,114,128,.1); color: var(--muted); }
+
+    /* ── Interface cards ──────────────────────────────────── */
+    .iface-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+    .iface-card {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px 20px; background: var(--surface2);
+      transition: background .3s, border-color .3s;
+    }
+    .iface-card .iface-name { font-weight: 700; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .iface-card .dot-up   { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .iface-card .dot-down { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+    .iface-card .iface-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+    /* ── Port pills ───────────────────────────────────────── */
+    .port-section { margin-bottom: 20px; }
+    .port-section h3 { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 700; }
+    .port-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .port-pill { padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .port-pill.listen { background: rgba(16,185,129,.1); color: var(--green); border: 1px solid rgba(16,185,129,.2); }
+    .port-pill.established { background: rgba(139,92,246,.1); color: var(--accent); border: 1px solid rgba(139,92,246,.2); }
+    .port-pill .proc { font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 6px; }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    .footer {
+      margin-top: 32px; padding: 28px 0; border-top: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+      transition: border-color .3s;
+    }
+    .footer .brand-block { display: flex; align-items: center; gap: 12px; }
+    .footer .brand-block img { height: 28px; }
+    .footer .brand-block .brand-text { font-size: 13px; }
+    .footer .brand-block .brand-text strong { color: var(--brand); }
+    .footer .footer-links {
+      margin-left: auto; display: flex; align-items: center; gap: 20px; font-size: 13px;
+    }
+    .footer .footer-links a { color: var(--muted); display: flex; align-items: center; gap: 5px; transition: color .15s; }
+    .footer .footer-links a:hover { color: var(--brand); text-decoration: none; }
+    .footer .footer-links svg { width: 15px; height: 15px; }
+    .footer .copy { width: 100%; text-align: center; font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat-card .value { font-size: 20px; }
+      .chart-wrap { height: 200px; }
+      .hero { padding: 24px 20px; }
+      .hero h2 { font-size: 18px; }
+      .topbar .tagline { display: none; }
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ Top Bar ═══ -->
+<div class="topbar">
+  <img class="logo-img" src="/static/assets/logo-struckhigh.png" alt="Struckhigh" />
+  <div class="divider"></div>
+  <div class="product-name"><span>Net</span>Watch</div>
+  <div class="tagline">Network Intelligence by Struckhigh</div>
+  <div class="right">
+    <span class="live-dot"></span>
+    <span class="live-label">LIVE</span>
+    <div class="divider"></div>
+
+    <!-- Theme Toggle -->
+    <button class="theme-btn" id="themeToggle" title="Toggle dark / light mode" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <span class="label-text"></span>
+    </button>
+
+    <div class="divider"></div>
+    <a class="social-link" href="https://instagram.com/struckhigh" target="_blank" rel="noopener" title="Follow @struckhigh on Instagram">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+    </a>
+    <a class="social-link" href="https://struckhigh.co.in" target="_blank" rel="noopener" title="struckhigh.co.in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    </a>
+    <a class="social-link" href="https://github.com/ayucha7/struckhigh-network-monitoring" target="_blank" rel="noopener" title="GitHub Repo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    </a>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ═══ Hero ═══ -->
+  <div class="hero">
+    <h2>Real-Time <span>Network Intelligence</span></h2>
+    <p>Monitor every byte flowing through your system. Track bandwidth, active connections, open ports, and network interfaces — all from one dashboard.</p>
+    <div class="powered">
+      <img class="logo-img" src="/static/assets/logo-struckhigh.png" alt="" />
+      Built with precision by Struckhigh Solutions &middot; struckhigh.co.in
+    </div>
+  </div>
+
+  <!-- ═══ Stats ═══ -->
+  <div class="stats">
+    <div class="stat-card s-up">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
+      <span class="label">Upload Speed</span>
+      <span class="value v-up" id="speed-up">—</span>
+      <span class="sub">per second</span>
+    </div>
+    <div class="stat-card s-down">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
+      <span class="label">Download Speed</span>
+      <span class="value v-down" id="speed-down">—</span>
+      <span class="sub">per second</span>
+    </div>
+    <div class="stat-card s-sent">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <span class="label">Total Sent</span>
+      <span class="value v-brand" id="total-sent">—</span>
+      <span class="sub">since boot</span>
+    </div>
+    <div class="stat-card s-recv">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <span class="label">Total Received</span>
+      <span class="value v-blue" id="total-recv">—</span>
+      <span class="sub">since boot</span>
+    </div>
+  </div>
+
+  <!-- ═══ Traffic Chart ═══ -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <h2>Live Traffic</h2>
+    </div>
+    <div class="chart-wrap"><canvas id="trafficChart"></canvas></div>
+  </div>
+
+  <!-- ═══ Tabs ═══ -->
+  <div class="tabs">
+    <button class="active" data-tab="connections">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      Connections
+    </button>
+    <button data-tab="interfaces">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      Interfaces
+    </button>
+    <button data-tab="ports">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Ports
+    </button>
+  </div>
+
+  <!-- Connections Panel -->
+  <div class="card tab-panel" id="panel-connections">
+    <div class="card-header">
+      <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+      <h2>Active Connections</h2>
+      <span class="count" id="conn-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Protocol</th><th>Family</th><th>Local Address</th><th>Remote Address</th><th>Status</th><th>PID</th><th>Process</th></tr></thead><tbody id="conn-body"></tbody></table>
+    </div>
+  </div>
+
+  <!-- Interfaces Panel -->
+  <div class="card tab-panel" id="panel-interfaces" style="display:none">
+    <div class="card-header">
+      <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></div>
+      <h2>Network Interfaces</h2>
+    </div>
+    <div class="iface-grid" id="iface-grid"></div>
+  </div>
+
+  <!-- Ports Panel -->
+  <div class="card tab-panel" id="panel-ports" style="display:none">
+    <div class="card-header">
+      <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <h2>Port Usage</h2>
+    </div>
+    <div id="port-content"></div>
+  </div>
+
+  <!-- ═══ Footer ═══ -->
+  <div class="footer">
+    <div class="brand-block">
+      <img class="logo-img" src="/static/assets/logo-struckhigh.png" alt="Struckhigh" />
+      <div class="brand-text">
+        <strong>Struckhigh</strong> Solutions<br/>
+        <span style="color:var(--muted); font-size:11px">Think Bigger. Design Smarter.</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="https://struckhigh.co.in" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Website
+      </a>
+      <a href="https://instagram.com/struckhigh" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        Instagram
+      </a>
+      <a href="https://github.com/ayucha7/struckhigh-network-monitoring" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        GitHub
+      </a>
+      <a href="https://www.linkedin.com/company/struckhigh/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        LinkedIn
+      </a>
+    </div>
+    <div class="copy">&copy; 2024–2026 Struckhigh Solutions &middot; All rights reserved &middot; contact@struckhigh.co.in</div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   THEME SYSTEM
+   ══════════════════════════════════════════════════════════════ */
+(function() {
+  const html = document.documentElement;
+  const saved = localStorage.getItem("netwatch-theme");
+  if (saved) html.setAttribute("data-theme", saved);
+
+  document.getElementById("themeToggle").addEventListener("click", function() {
+    const current = html.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("netwatch-theme", next);
+    updateChartTheme(next);
+  });
+})();
+
+/* ── Helpers ──────────────────────────────────────────────── */
+function fmtBytes(b) {
+  var units = ["B","KB","MB","GB","TB"], i = 0;
+  while (Math.abs(b) >= 1024 && i < units.length - 1) { b /= 1024; i++; }
+  return b.toFixed(1) + " " + units[i];
+}
+function statusBadge(s) {
+  var cls = { LISTEN:"badge-listen", ESTABLISHED:"badge-established", TIME_WAIT:"badge-time-wait", CLOSE_WAIT:"badge-close-wait" }[s] || "badge-other";
+  return '<span class="badge-status ' + cls + '">' + s + '</span>';
+}
+function isDark() { return document.documentElement.getAttribute("data-theme") === "dark"; }
+
+/* ── Chart colors by theme ────────────────────────────────── */
+function getChartColors() {
+  var d = isDark();
+  return {
+    gridColor:    d ? "rgba(30,35,48,.5)" : "rgba(0,0,0,.06)",
+    tickColor:    d ? "#6b7280" : "#9ca3af",
+    tooltipBg:    d ? "#12151c" : "#ffffff",
+    tooltipBorder:d ? "#1e2330" : "#e2e5ea",
+    tooltipText:  d ? "#e4e6ed" : "#111827",
+    legendColor:  d ? "#6b7280" : "#9ca3af",
+  };
+}
+
+/* ── Chart ────────────────────────────────────────────────── */
+var ctx = document.getElementById("trafficChart").getContext("2d");
+var cc = getChartColors();
+var chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      { label: "Upload", data: [], borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.06)", fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+      { label: "Download", data: [], borderColor: "#f472b6", backgroundColor: "rgba(244,114,182,.06)", fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { labels: { color: cc.legendColor, usePointStyle: true, pointStyle: "circle", padding: 20, font: { size: 12 } } },
+      tooltip: { backgroundColor: cc.tooltipBg, borderColor: cc.tooltipBorder, borderWidth: 1, titleColor: cc.tooltipText, bodyColor: cc.tooltipText, padding: 12, cornerRadius: 10,
+        callbacks: { label: function(c) { return c.dataset.label + ": " + fmtBytes(c.raw) + "/s"; } }
+      },
+    },
+    scales: {
+      x: { ticks: { color: cc.tickColor, maxTicksLimit: 12, font: { size: 11 } }, grid: { color: cc.gridColor } },
+      y: { ticks: { color: cc.tickColor, font: { size: 11 }, callback: function(v) { return fmtBytes(v) + "/s"; } }, grid: { color: cc.gridColor } },
+    },
+  },
+});
+
+function updateChartTheme(theme) {
+  var c = getChartColors();
+  chart.options.scales.x.ticks.color = c.tickColor;
+  chart.options.scales.x.grid.color = c.gridColor;
+  chart.options.scales.y.ticks.color = c.tickColor;
+  chart.options.scales.y.grid.color = c.gridColor;
+  chart.options.plugins.legend.labels.color = c.legendColor;
+  chart.options.plugins.tooltip.backgroundColor = c.tooltipBg;
+  chart.options.plugins.tooltip.borderColor = c.tooltipBorder;
+  chart.options.plugins.tooltip.titleColor = c.tooltipText;
+  chart.options.plugins.tooltip.bodyColor = c.tooltipText;
+  chart.update("none");
+}
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+document.querySelectorAll(".tabs button").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".tabs button").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    document.querySelectorAll(".tab-panel").forEach(function(p) { p.style.display = "none"; });
+    document.getElementById("panel-" + btn.dataset.tab).style.display = "block";
+  });
+});
+
+/* ── Fetchers ─────────────────────────────────────────────── */
+async function fetchTraffic() {
+  try {
+    var r = await fetch("/api/traffic"), d = await r.json();
+    chart.data.labels = d.timestamps;
+    chart.data.datasets[0].data = d.speed_up;
+    chart.data.datasets[1].data = d.speed_down;
+    chart.update("none");
+    var lastUp = d.speed_up.length ? d.speed_up[d.speed_up.length - 1] : 0;
+    var lastDown = d.speed_down.length ? d.speed_down[d.speed_down.length - 1] : 0;
+    document.getElementById("speed-up").textContent = fmtBytes(lastUp) + "/s";
+    document.getElementById("speed-down").textContent = fmtBytes(lastDown) + "/s";
+    document.getElementById("total-sent").textContent = d.total_sent_fmt;
+    document.getElementById("total-recv").textContent = d.total_recv_fmt;
+  } catch (e) { console.error("traffic", e); }
+}
+
+async function fetchConnections() {
+  try {
+    var r = await fetch("/api/connections"), conns = await r.json();
+    document.getElementById("conn-count").textContent = "(" + conns.length + ")";
+    document.getElementById("conn-body").innerHTML = conns.map(function(c) {
+      return "<tr><td>" + c.type + "</td><td>" + c.family + "</td><td>" + c.local_addr +
+        "</td><td>" + c.remote_addr + "</td><td>" + statusBadge(c.status) +
+        "</td><td>" + (c.pid || "\u2014") + "</td><td>" + c.process + "</td></tr>";
+    }).join("");
+  } catch (e) { console.error("connections", e); }
+}
+
+async function fetchInterfaces() {
+  try {
+    var r = await fetch("/api/interfaces"), ifaces = await r.json();
+    document.getElementById("iface-grid").innerHTML = ifaces.map(function(i) {
+      var dot = i.is_up ? '<span class="dot-up"></span>' : '<span class="dot-down"></span>';
+      var addrs = i.addresses.map(function(a) { return "<span>" + a.family + ": " + a.address + "</span>"; }).join("");
+      return '<div class="iface-card"><div class="iface-name">' + dot + " " + i.name +
+        '</div><div class="iface-meta"><span>MTU ' + i.mtu + "</span>" +
+        (i.speed ? "<span>" + i.speed + " Mbps</span>" : "") +
+        "<span>\u2191 " + (i.bytes_sent_fmt || "0 B") + "</span>" +
+        "<span>\u2193 " + (i.bytes_recv_fmt || "0 B") + "</span>" +
+        '</div><div class="iface-meta" style="margin-top:6px">' + addrs + "</div></div>";
+    }).join("");
+  } catch (e) { console.error("interfaces", e); }
+}
+
+async function fetchPorts() {
+  try {
+    var r = await fetch("/api/ports"), d = await r.json();
+    var listenHtml = d.listening.map(function(p) {
+      return '<span class="port-pill listen">' + p.port + '<span class="proc">' + p.processes.join(", ") + "</span></span>";
+    }).join("");
+    var estHtml = d.established.map(function(p) {
+      return '<span class="port-pill established">' + p.port + '<span class="proc">' + p.processes.join(", ") + "</span></span>";
+    }).join("");
+    document.getElementById("port-content").innerHTML =
+      '<div class="port-section"><h3>Listening (' + d.listening.length + ')</h3><div class="port-list">' +
+      (listenHtml || '<span style="color:var(--muted)">None detected</span>') + "</div></div>" +
+      '<div class="port-section"><h3>Active (' + d.established.length + ')</h3><div class="port-list">' +
+      (estHtml || '<span style="color:var(--muted)">None detected</span>') + "</div></div>";
+  } catch (e) { console.error("ports", e); }
+}
+
+function refresh() { fetchTraffic(); fetchConnections(); fetchInterfaces(); fetchPorts(); }
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
