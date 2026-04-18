@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1080"/>
+<title>NetWatch Reel — Struckhigh</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+:root{
+  --brand:#e8552d;--bg:#0a0c10;--surface:#12151c;--border:#1e2330;
+  --text:#e4e6ed;--muted:#6b7280;--green:#10b981;--pink:#f472b6;
+  --blue:#3b82f6;--accent:#8b5cf6;
+}
+html,body{width:1080px;height:1920px;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
+
+/* ── Scene system ─────────────────────────────────────── */
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:scale(.96);transition:opacity .6s,transform .6s;pointer-events:none;padding:60px 50px}
+.scene.active{opacity:1;transform:scale(1);pointer-events:auto}
+
+/* ── Scene 1: Intro ───────────────────────────────────── */
+.s1-logo{width:120px;height:120px;margin-bottom:30px;animation:floatIn .8s ease-out both;filter:brightness(0) invert(1)}
+.s1-badge{background:var(--brand);color:#fff;font-size:18px;font-weight:700;padding:8px 28px;border-radius:30px;letter-spacing:1px;margin-bottom:40px;animation:floatIn .8s .2s ease-out both}
+.s1-title{font-size:72px;font-weight:900;text-align:center;line-height:1.1;animation:floatIn .8s .4s ease-out both}
+.s1-title span{color:var(--brand)}
+.s1-sub{font-size:28px;color:var(--muted);margin-top:20px;text-align:center;animation:floatIn .8s .6s ease-out both}
+.s1-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(232,85,45,.15),transparent 70%);pointer-events:none}
+
+/* ── Scene 2: Problem ─────────────────────────────────── */
+.s2-emoji{font-size:100px;margin-bottom:30px;animation:shake 1s ease-in-out both}
+.s2-q{font-size:52px;font-weight:800;text-align:center;line-height:1.2;animation:floatIn .8s .2s ease-out both}
+.s2-q span{color:var(--brand)}
+.s2-list{margin-top:40px;display:flex;flex-direction:column;gap:18px;width:100%}
+.s2-item{display:flex;align-items:center;gap:16px;font-size:28px;font-weight:600;color:var(--muted);padding:18px 28px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+.s2-item .dot{width:12px;height:12px;border-radius:50%;background:var(--brand);flex-shrink:0}
+
+/* ── Scene 3: Solution ────────────────────────────────── */
+.s3-intro{font-size:24px;color:var(--muted);font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;animation:floatIn .6s ease-out both}
+.s3-name{font-size:80px;font-weight:900;text-align:center;line-height:1;animation:floatIn .8s .2s ease-out both}
+.s3-name span{color:var(--brand)}
+.s3-tagline{font-size:28px;color:var(--muted);margin-top:16px;animation:floatIn .8s .4s ease-out both}
+.s3-features{margin-top:50px;display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;animation:floatIn .8s .6s ease-out both}
+.s3-feat{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;text-align:center}
+.s3-feat .icon{font-size:40px;margin-bottom:10px}
+.s3-feat .label{font-size:22px;font-weight:700}
+.s3-feat .desc{font-size:16px;color:var(--muted);margin-top:4px}
+
+/* ── Scene 4: Live chart ──────────────────────────────── */
+.s4-header{font-size:36px;font-weight:800;margin-bottom:8px;animation:floatIn .6s ease-out both;text-align:center}
+.s4-header span{color:var(--brand)}
+.s4-sub{font-size:20px;color:var(--muted);margin-bottom:30px;animation:floatIn .6s .2s ease-out both}
+.s4-stats{display:flex;gap:20px;margin-bottom:30px;width:100%;animation:floatIn .6s .3s ease-out both}
+.s4-stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;position:relative;overflow:hidden}
+.s4-stat::after{content:"";position:absolute;top:0;left:0;right:0;height:3px}
+.s4-stat.up::after{background:var(--green)}.s4-stat.down::after{background:var(--pink)}
+.s4-stat.sent::after{background:var(--brand)}.s4-stat.recv::after{background:var(--blue)}
+.s4-stat .val{font-size:32px;font-weight:800}.s4-stat .lbl{font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.s4-chart{width:100%;height:400px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;animation:floatIn .6s .4s ease-out both}
+
+/* ── Scene 5: Connections ─────────────────────────────── */
+.s5-header{font-size:36px;font-weight:800;margin-bottom:24px;animation:floatIn .6s ease-out both;text-align:center}
+.s5-header span{color:var(--brand)}
+.s5-table{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;animation:floatIn .6s .2s ease-out both}
+.s5-table table{width:100%;border-collapse:collapse;font-size:20px}
+.s5-table th{background:var(--bg);padding:16px 20px;text-align:left;color:var(--muted);font-size:16px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.s5-table td{padding:14px 20px;border-top:1px solid var(--border)}
+.s5-badge{display:inline-block;padding:4px 14px;border-radius:8px;font-size:15px;font-weight:700}
+.s5-listen{background:rgba(16,185,129,.12);color:var(--green)}
+.s5-est{background:rgba(139,92,246,.12);color:var(--accent)}
+
+/* ── Scene 6: Ports ───────────────────────────────────── */
+.s6-header{font-size:36px;font-weight:800;margin-bottom:30px;animation:floatIn .6s ease-out both;text-align:center}
+.s6-header span{color:var(--brand)}
+.s6-section{width:100%;margin-bottom:24px;animation:floatIn .6s .2s ease-out both}
+.s6-section h3{font-size:22px;color:var(--muted);margin-bottom:14px;font-weight:700}
+.s6-pills{display:flex;flex-wrap:wrap;gap:12px}
+.s6-pill{padding:12px 24px;border-radius:12px;font-size:22px;font-weight:700}
+.s6-pill.listen{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.s6-pill.active{background:rgba(139,92,246,.1);color:var(--accent);border:1px solid rgba(139,92,246,.25)}
+.s6-pill .proc{font-weight:400;font-size:16px;color:var(--muted);margin-left:8px}
+
+/* ── Scene 7: CTA ─────────────────────────────────────── */
+.s7-logo{width:100px;filter:brightness(0) invert(1);margin-bottom:24px;animation:floatIn .6s ease-out both}
+.s7-title{font-size:56px;font-weight:900;text-align:center;line-height:1.15;animation:floatIn .8s .2s ease-out both}
+.s7-title span{color:var(--brand)}
+.s7-cmd{margin-top:36px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 36px;font-family:'SF Mono',Monaco,monospace;font-size:24px;color:var(--green);animation:floatIn .8s .4s ease-out both}
+.s7-cmd .prompt{color:var(--muted)}
+.s7-url{margin-top:30px;font-size:22px;color:var(--muted);animation:floatIn .8s .6s ease-out both}
+.s7-url a{color:var(--brand);font-weight:700}
+.s7-social{margin-top:40px;display:flex;gap:20px;animation:floatIn .8s .8s ease-out both}
+.s7-social a{color:var(--muted);font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px;text-decoration:none;transition:color .2s}
+.s7-social a:hover{color:var(--brand)}
+.s7-tagline{margin-top:40px;font-size:20px;color:var(--muted);font-style:italic;animation:floatIn .8s 1s ease-out both}
+.s7-glow{position:absolute;bottom:10%;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(232,85,45,.12),transparent 70%);pointer-events:none}
+
+/* ── Progress bar ─────────────────────────────────────── */
+.progress{position:fixed;top:0;left:0;right:0;height:4px;z-index:999;background:rgba(255,255,255,.05)}
+.progress-bar{height:100%;background:var(--brand);transition:width .3s linear;width:0}
+
+/* ── Watermark ────────────────────────────────────────── */
+.watermark{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;font-size:18px;color:rgba(255,255,255,.25);z-index:999;font-weight:600}
+.watermark img{height:20px;filter:brightness(0) invert(1);opacity:.25}
+
+/* ── Animations ───────────────────────────────────────── */
+@keyframes floatIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:rotate(0)}15%{transform:rotate(-12deg)}30%{transform:rotate(12deg)}45%{transform:rotate(-8deg)}60%{transform:rotate(8deg)}75%{transform:rotate(-4deg)}90%{transform:rotate(4deg)}}
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+<!-- Watermark -->
+<div class="watermark">
+  <img src="../static/assets/logo-struckhigh.png" alt=""/> struckhigh.co.in
+</div>
+
+<!-- ═══ Scene 1: Intro ═══ -->
+<div class="scene active" id="scene1">
+  <div class="s1-glow"></div>
+  <img class="s1-logo" src="../static/assets/logo-struckhigh.png" alt="Struckhigh"/>
+  <div class="s1-badge">BY STRUCKHIGH</div>
+  <div class="s1-title">Meet<br/><span>NetWatch</span></div>
+  <div class="s1-sub">Real-Time Network Intelligence<br/>for Your Local Machine</div>
+</div>
+
+<!-- ═══ Scene 2: Problem ═══ -->
+<div class="scene" id="scene2">
+  <div class="s2-emoji">🤔</div>
+  <div class="s2-q">Ever wondered<br/><span>what's using your network?</span></div>
+  <div class="s2-list">
+    <div class="s2-item"><span class="dot"></span>Which app is eating bandwidth?</div>
+    <div class="s2-item"><span class="dot"></span>What ports are open right now?</div>
+    <div class="s2-item"><span class="dot"></span>Who's connecting to your machine?</div>
+    <div class="s2-item"><span class="dot"></span>How much data have you sent today?</div>
+  </div>
+</div>
+
+<!-- ═══ Scene 3: Solution ═══ -->
+<div class="scene" id="scene3">
+  <div class="s3-intro">Introducing</div>
+  <div class="s3-name"><span>Net</span>Watch</div>
+  <div class="s3-tagline">One dashboard. Every byte. Zero config.</div>
+  <div class="s3-features">
+    <div class="s3-feat"><div class="icon">📈</div><div class="label">Live Speeds</div><div class="desc">Upload & download in real-time</div></div>
+    <div class="s3-feat"><div class="icon">🔗</div><div class="label">Connections</div><div class="desc">Every TCP/UDP socket</div></div>
+    <div class="s3-feat"><div class="icon">🖧</div><div class="label">Interfaces</div><div class="desc">All adapters & IPs</div></div>
+    <div class="s3-feat"><div class="icon">🔒</div><div class="label">Ports</div><div class="desc">Listening & active</div></div>
+  </div>
+</div>
+
+<!-- ═══ Scene 4: Live Chart ═══ -->
+<div class="scene" id="scene4">
+  <div class="s4-header">Live <span>Traffic Monitor</span></div>
+  <div class="s4-sub">60-second rolling bandwidth chart</div>
+  <div class="s4-stats">
+    <div class="s4-stat up"><div class="val" style="color:var(--green)" id="s4up">142.3 KB/s</div><div class="lbl">Upload</div></div>
+    <div class="s4-stat down"><div class="val" style="color:var(--pink)" id="s4down">1.2 MB/s</div><div class="lbl">Download</div></div>
+    <div class="s4-stat sent"><div class="val" style="color:var(--brand)">1.1 GB</div><div class="lbl">Sent</div></div>
+    <div class="s4-stat recv"><div class="val" style="color:var(--blue)">4.5 GB</div><div class="lbl">Received</div></div>
+  </div>
+  <div class="s4-chart"><canvas id="reelChart"></canvas></div>
+</div>
+
+<!-- ═══ Scene 5: Connections ═══ -->
+<div class="scene" id="scene5">
+  <div class="s5-header">Active <span>Connections</span></div>
+  <div class="s5-table">
+    <table>
+      <thead><tr><th>Process</th><th>Local</th><th>Remote</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>nginx</td><td>0.0.0.0:443</td><td>—</td><td><span class="s5-badge s5-listen">LISTEN</span></td></tr>
+        <tr><td>postgres</td><td>0.0.0.0:5432</td><td>—</td><td><span class="s5-badge s5-listen">LISTEN</span></td></tr>
+        <tr><td>redis</td><td>0.0.0.0:6379</td><td>—</td><td><span class="s5-badge s5-listen">LISTEN</span></td></tr>
+        <tr><td>sshd</td><td>0.0.0.0:22</td><td>—</td><td><span class="s5-badge s5-listen">LISTEN</span></td></tr>
+        <tr><td>firefox</td><td>192.168.1.10:52400</td><td>172.217.14.99:443</td><td><span class="s5-badge s5-est">ESTABLISHED</span></td></tr>
+        <tr><td>git</td><td>192.168.1.10:52341</td><td>140.82.121.4:443</td><td><span class="s5-badge s5-est">ESTABLISHED</span></td></tr>
+        <tr><td>curl</td><td>192.168.1.10:52430</td><td>52.6.140.41:443</td><td><span class="s5-badge s5-est">ESTABLISHED</span></td></tr>
+        <tr><td>code</td><td>192.168.1.10:52420</td><td>13.107.42.14:443</td><td><span class="s5-badge s5-est">ESTABLISHED</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ Scene 6: Ports ═══ -->
+<div class="scene" id="scene6">
+  <div class="s6-header">Port <span>Usage</span></div>
+  <div class="s6-section">
+    <h3>🟢 Listening</h3>
+    <div class="s6-pills">
+      <span class="s6-pill listen">22 <span class="proc">sshd</span></span>
+      <span class="s6-pill listen">80 <span class="proc">nginx</span></span>
+      <span class="s6-pill listen">443 <span class="proc">nginx</span></span>
+      <span class="s6-pill listen">3306 <span class="proc">mysql</span></span>
+      <span class="s6-pill listen">5000 <span class="proc">python3</span></span>
+      <span class="s6-pill listen">5432 <span class="proc">postgres</span></span>
+      <span class="s6-pill listen">6379 <span class="proc">redis</span></span>
+      <span class="s6-pill listen">8080 <span class="proc">java</span></span>
+      <span class="s6-pill listen">27017 <span class="proc">mongod</span></span>
+    </div>
+  </div>
+  <div class="s6-section">
+    <h3>🟣 Active</h3>
+    <div class="s6-pills">
+      <span class="s6-pill active">443 <span class="proc">firefox, git, curl</span></span>
+      <span class="s6-pill active">52341 <span class="proc">git</span></span>
+      <span class="s6-pill active">52400 <span class="proc">firefox</span></span>
+      <span class="s6-pill active">52420 <span class="proc">code</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Scene 7: CTA ═══ -->
+<div class="scene" id="scene7">
+  <div class="s7-glow"></div>
+  <img class="s7-logo" src="../static/assets/logo-struckhigh.png" alt="Struckhigh"/>
+  <div class="s7-title">Try <span>NetWatch</span><br/>Right Now</div>
+  <div class="s7-cmd"><span class="prompt">$</span> pip install flask psutil<br/><span class="prompt">$</span> python3 app.py</div>
+  <div class="s7-url">
+    <a href="https://github.com/ayucha7/struckhigh-network-monitoring">github.com/ayucha7/struckhigh-network-monitoring</a>
+  </div>
+  <div class="s7-social">
+    <a href="https://struckhigh.co.in">🌐 struckhigh.co.in</a>
+    <a href="https://instagram.com/struckhigh">📸 @struckhigh</a>
+  </div>
+  <div class="s7-tagline">"Think Bigger. Design Smarter."</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   REEL ENGINE — auto-advances scenes with timed transitions
+   ══════════════════════════════════════════════════════════════ */
+var scenes = [
+  { id: "scene1", duration: 4000 },
+  { id: "scene2", duration: 5000 },
+  { id: "scene3", duration: 5000 },
+  { id: "scene4", duration: 6000 },
+  { id: "scene5", duration: 5000 },
+  { id: "scene6", duration: 5000 },
+  { id: "scene7", duration: 6000 },
+];
+var totalDuration = scenes.reduce(function(a, s) { return a + s.duration; }, 0);
+var currentScene = 0;
+var elapsed = 0;
+var progressBar = document.getElementById("progressBar");
+
+function showScene(idx) {
+  scenes.forEach(function(s, i) {
+    var el = document.getElementById(s.id);
+    if (i === idx) { el.classList.add("active"); }
+    else { el.classList.remove("active"); }
+  });
+}
+
+function advance() {
+  currentScene++;
+  if (currentScene >= scenes.length) {
+    currentScene = 0;
+    elapsed = 0;
+  }
+  showScene(currentScene);
+  setTimeout(advance, scenes[currentScene].duration);
+}
+setTimeout(advance, scenes[0].duration);
+
+/* Progress bar */
+var startTime = Date.now();
+function updateProgress() {
+  var now = Date.now();
+  var e = (now - startTime) % totalDuration;
+  var pct = (e / totalDuration) * 100;
+  progressBar.style.width = pct + "%";
+  requestAnimationFrame(updateProgress);
+}
+requestAnimationFrame(updateProgress);
+
+/* ── Chart for Scene 4 ────────────────────────────────── */
+var chartEl = document.getElementById("reelChart");
+var labels = [], upData = [], downData = [];
+for (var i = 0; i < 40; i++) {
+  var h = 14, m = 30, s = i;
+  if (s >= 60) { m++; s -= 60; }
+  labels.push(h + ":" + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s);
+  upData.push(Math.floor(Math.random() * 250000) + 10000);
+  downData.push(Math.floor(Math.random() * 1800000) + 100000);
+}
+
+var chart = new Chart(chartEl.getContext("2d"), {
+  type: "line",
+  data: {
+    labels: labels,
+    datasets: [
+      { label: "Upload", data: upData, borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.08)", fill: true, tension: .4, pointRadius: 0, borderWidth: 2.5 },
+      { label: "Download", data: downData, borderColor: "#f472b6", backgroundColor: "rgba(244,114,182,.08)", fill: true, tension: .4, pointRadius: 0, borderWidth: 2.5 },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 1500, easing: "easeInOutQuart" },
+    plugins: {
+      legend: { labels: { color: "#6b7280", usePointStyle: true, pointStyle: "circle", padding: 16, font: { size: 14 } } },
+    },
+    scales: {
+      x: { display: false },
+      y: { ticks: { color: "#6b7280", font: { size: 13 }, callback: function(v) { return (v / 1024).toFixed(0) + " KB/s"; } }, grid: { color: "rgba(30,35,48,.5)" } },
+    },
+  },
+});
+
+/* Animate chart data when scene 4 is active */
+setInterval(function() {
+  upData.shift(); upData.push(Math.floor(Math.random() * 250000) + 10000);
+  downData.shift(); downData.push(Math.floor(Math.random() * 1800000) + 100000);
+  labels.shift();
+  var last = labels[labels.length - 1];
+  var parts = last.split(":"); var ns = parseInt(parts[2]) + 1;
+  var nm = parseInt(parts[1]); if (ns >= 60) { ns = 0; nm++; }
+  labels.push(parts[0] + ":" + (nm < 10 ? "0" : "") + nm + ":" + (ns < 10 ? "0" : "") + ns);
+  chart.update("none");
+
+  var lastUp = upData[upData.length - 1];
+  var lastDown = downData[downData.length - 1];
+  var fmt = function(b) { var u = ["B","KB","MB"], i = 0; while (b >= 1024 && i < 2) { b /= 1024; i++; } return b.toFixed(1) + " " + u[i] + "/s"; };
+  document.getElementById("s4up").textContent = fmt(lastUp);
+  document.getElementById("s4down").textContent = fmt(lastDown);
+}, 1000);
+</script>
+</body>
+</html>
