@@ -86,7 +86,7 @@ python3 app.py
 ### 4. Open your browser
 
 ```
-http://127.0.0.1:5000
+http://127.0.0.1:6100
 ```
 
 That's it. No config files, no database, no setup wizards.

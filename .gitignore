@@ -24,6 +24,11 @@ env/
 .DS_Store
 Thumbs.db
 
+# Marketing (local only)
+marketing/
+
 # Environment
 .env
 .env.local
+
+node_modules
