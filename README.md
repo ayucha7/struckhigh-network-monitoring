@@ -103,6 +103,14 @@ DEMO=1 python3 app.py
 
 This populates the dashboard with realistic fake data — nginx, postgres, redis, sshd, firefox, git, and more. No real system info is exposed.
 
+To switch back to **monitoring your own system**, just run without the flag:
+
+```bash
+python3 app.py
+```
+
+This reads your real network traffic, connections, open ports, and interfaces live.
+
 ---
 
 ## macOS Users
